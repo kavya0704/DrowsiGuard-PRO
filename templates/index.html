@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="AI-powered Driver Drowsiness Detection System — Real-time monitoring for safer driving.">
+    <title>AI Driver Drowsiness Detection System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Alert Overlay (full screen flash) -->
+    <div id="alertOverlay" class="alert-overlay hidden">
+        <div class="alert-content">
+            <div class="alert-icon">⚠️</div>
+            <h1>DROWSINESS DETECTED!</h1>
+            <p>Please take a break and rest</p>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <div class="logo-icon">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <circle cx="14" cy="14" r="12" stroke="url(#grad1)" stroke-width="2.5"/>
+                        <circle cx="10" cy="12" r="2" fill="#00d4ff"/>
+                        <circle cx="18" cy="12" r="2" fill="#00d4ff"/>
+                        <path d="M9 18 C11 20, 17 20, 19 18" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="grad1" x1="0" y1="0" x2="28" y2="28">
+                                <stop offset="0%" stop-color="#00d4ff"/>
+                                <stop offset="100%" stop-color="#7c3aed"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <h1>DrowsiGuard</h1>
+                    <span class="logo-subtitle">AI Drowsiness Detection</span>
+                </div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="system-status" id="systemStatus">
+                <span class="status-dot offline" id="statusDot"></span>
+                <span class="status-text" id="statusText">Offline</span>
+            </div>
+            <div class="header-stats">
+                <span class="stat-pill" id="fpsDisplay">
+                    <span class="stat-label">FPS</span>
+                    <span class="stat-value" id="fpsValue">0</span>
+                </span>
+                <span class="stat-pill" id="uptimeDisplay">
+                    <span class="stat-label">Uptime</span>
+                    <span class="stat-value" id="uptimeValue">00:00</span>
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard">
+        <!-- Left Panel: Video Feed -->
+        <section class="video-section">
+            <div class="video-container" id="videoContainer">
+                <!-- Desktop: server-streamed MJPEG -->
+                <img id="videoFeed" src="/video_feed" alt="Live Camera Feed" class="video-feed">
+                <!-- Mobile: client-side camera -->
+                <video id="mobileVideo" class="video-feed hidden" autoplay playsinline muted></video>
+                <canvas id="mobileCanvas" class="video-feed hidden"></canvas>
+                <div class="video-placeholder" id="videoPlaceholder">
+                    <div class="placeholder-icon">📷</div>
+                    <h3>Camera Not Active</h3>
+                    <p id="placeholderText">Click Start to begin monitoring</p>
+                </div>
+                <!-- Live badge -->
+                <div class="live-badge hidden" id="liveBadge">
+                    <span class="live-dot"></span> LIVE
+                </div>
+                <!-- Device mode badge -->
+                <div class="mode-badge hidden" id="modeBadge">
+                    <span id="modeIcon">💻</span> <span id="modeText">Desktop</span>
+                </div>
+            </div>
+
+            <!-- Camera Controls -->
+            <div class="camera-controls">
+                <div class="input-group" id="cameraUrlGroup">
+                    <label for="cameraUrl">Camera Source</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="cameraUrl" 
+                               placeholder="e.g. http://192.168.1.100:8080/video  (leave empty for webcam)"
+                               spellcheck="false">
+                        <button class="btn-icon" id="pasteBtn" title="Paste from clipboard">📋</button>
+                    </div>
+                </div>
+                <div class="control-buttons">
+                    <button id="startBtn" class="btn btn-primary">
+                        <span class="btn-icon-left">▶</span> Start Detection
+                    </button>
+                    <button id="stopBtn" class="btn btn-danger" disabled>
+                        <span class="btn-icon-left">■</span> Stop
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Right Panel: Metrics & Controls -->
+        <aside class="metrics-panel">
+            <!-- Eye Status Card -->
+            <div class="metric-card" id="eyeCard">
+                <div class="metric-header">
+                    <span class="metric-icon">👁️</span>
+                    <h3>Eye Status</h3>
+                </div>
+                <div class="metric-body">
+                    <div class="status-display" id="eyeStatusDisplay">
+                        <span class="status-indicator open" id="eyeIndicator"></span>
+                        <span class="status-label" id="eyeStatusText">—</span>
+                    </div>
+                    <div class="metric-detail">
+                        <span class="detail-label">EAR Value</span>
+                        <span class="detail-value mono" id="earValue">0.000</span>
+                    </div>
+                    <div class="ear-bar-container">
+                        <div class="ear-bar" id="earBar" style="width: 0%"></div>
+                        <div class="ear-threshold-line" id="earThresholdLine"></div>
+                    </div>
+                    <div class="metric-detail">
+                        <span class="detail-label">Blinks</span>
+                        <span class="detail-value" id="blinkCount">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mouth Status Card -->
+            <div class="metric-card" id="mouthCard">
+                <div class="metric-header">
+                    <span class="metric-icon">👄</span>
+                    <h3>Mouth Status</h3>
+                </div>
+                <div class="metric-body">
+                    <div class="status-display" id="mouthStatusDisplay">
+                        <span class="status-indicator open" id="mouthIndicator"></span>
+                        <span class="status-label" id="mouthStatusText">—</span>
+                    </div>
+                    <div class="metric-detail">
+                        <span class="detail-label">MAR Value</span>
+                        <span class="detail-value mono" id="marValue">0.000</span>
+                    </div>
+                    <div class="mar-bar-container">
+                        <div class="mar-bar" id="marBar" style="width: 0%"></div>
+                        <div class="mar-threshold-line" id="marThresholdLine"></div>
+                    </div>
+                    <div class="metric-detail">
+                        <span class="detail-label">Yawns</span>
+                        <span class="detail-value" id="yawnCount">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fatigue Level Card -->
+            <div class="metric-card fatigue-card" id="fatigueCard">
+                <div class="metric-header">
+                    <span class="metric-icon">⚡</span>
+                    <h3>Fatigue Level</h3>
+                </div>
+                <div class="metric-body">
+                    <div class="fatigue-gauge">
+                        <div class="fatigue-ring" id="fatigueRing">
+                            <svg viewBox="0 0 120 120">
+                                <circle class="ring-bg" cx="60" cy="60" r="52" />
+                                <circle class="ring-fill" id="ringFill" cx="60" cy="60" r="52" />
+                            </svg>
+                            <div class="fatigue-percent" id="fatiguePercent">0%</div>
+                        </div>
+                        <div class="fatigue-label" id="fatigueLabel">ALERT</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Controls -->
+            <div class="metric-card controls-card">
+                <div class="metric-header">
+                    <span class="metric-icon">⚙️</span>
+                    <h3>Controls</h3>
+                </div>
+                <div class="metric-body">
+                    <div class="toggle-row">
+                        <span>🔊 Alarm Sound</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="soundToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span>🔒 Privacy Mode</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="privacyToggle">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-row">
+                        <span>🎯 Face Detected</span>
+                        <span class="face-status" id="faceStatus">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Card (collapsible) -->
+            <details class="metric-card settings-card">
+                <summary class="metric-header clickable">
+                    <span class="metric-icon">🎛️</span>
+                    <h3>Threshold Settings</h3>
+                    <span class="expand-icon">▾</span>
+                </summary>
+                <div class="metric-body">
+                    <div class="slider-group">
+                        <label>EAR Threshold: <span id="earThresholdVal">0.22</span></label>
+                        <input type="range" id="earThreshold" min="0.10" max="0.35" step="0.01" value="0.22">
+                    </div>
+                    <div class="slider-group">
+                        <label>MAR Threshold: <span id="marThresholdVal">0.65</span></label>
+                        <input type="range" id="marThreshold" min="0.30" max="1.00" step="0.05" value="0.65">
+                    </div>
+                    <div class="slider-group">
+                        <label>Eye Frames: <span id="earFramesVal">15</span></label>
+                        <input type="range" id="earFrames" min="5" max="40" step="1" value="15">
+                    </div>
+                    <div class="slider-group">
+                        <label>Yawn Frames: <span id="marFramesVal">10</span></label>
+                        <input type="range" id="marFrames" min="3" max="30" step="1" value="10">
+                    </div>
+                    <button id="applyThresholds" class="btn btn-secondary btn-sm">Apply Changes</button>
+                </div>
+            </details>
+        </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>🔒 Privacy-Safe — No video is recorded or stored. All processing happens locally in real-time.</p>
+    </footer>
+
+    <!-- MediaPipe Vision Tasks JS for mobile client-side detection -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs" type="module"></script>
+    <script src="/static/js/app.js" type="module"></script>
+</body>
+</html>
