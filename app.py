@@ -22,6 +22,8 @@ import time
 import math
 import json
 import os
+import urllib.request
+import urllib.error
 from flask import Flask, render_template, Response, jsonify, request
 
 # Import configuration
@@ -620,6 +622,66 @@ def update_thresholds():
         'ear_consec_frames': state.ear_consec_frames,
         'mar_consec_frames': state.mar_consec_frames
     })
+
+@app.route('/api/chat', methods=['POST'])
+def chat_endpoint():
+    """Proxy chat requests to the Groq API."""
+    data = request.get_json(silent=True) or {}
+    messages = data.get('messages', [])
+    
+    api_key = data.get('api_key') or config.GROQ_API_KEY
+    model = data.get('model') or config.GROQ_MODEL
+    base_url = data.get('base_url') or config.GROQ_BASE_URL
+    
+    if not api_key:
+        return jsonify({'error': 'Groq API Key is not configured.'}), 400
+        
+    url = f"{base_url.rstrip('/')}/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {api_key}"
+    }
+    
+    system_prompt = (
+        "You are 'DrowsiGuard AI Copilot', an interactive AI assistant integrated into a Driver Drowsiness Detection System. "
+        "Your primary goal is to keep the driver awake, engaged, and safe. "
+        "Keep your responses relatively short, highly conversational, and energetic. "
+        "You can offer to play a trivia game, tell a joke, share an interesting fact, or talk about a topic of interest. "
+        "If the user tells you they are tired or if a drowsiness alert is triggered, show concern, advise them to pull over if "
+        "they are too tired, and offer to engage them in conversation to help keep them awake."
+    )
+    
+    # Ensure system prompt is present at index 0
+    if not any(msg.get('role') == 'system' for msg in messages):
+        messages.insert(0, {'role': 'system', 'content': system_prompt})
+        
+    body = {
+        "model": model,
+        "messages": messages,
+        "max_tokens": 1000
+    }
+    
+    req = urllib.request.Request(
+        url,
+        data=json.dumps(body).encode('utf-8'),
+        headers=headers,
+        method='POST'
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=15) as response:
+            res_data = response.read().decode('utf-8')
+            return Response(res_data, mimetype='application/json')
+    except urllib.error.HTTPError as e:
+        try:
+            err_body = e.read().decode('utf-8')
+            err_json = json.loads(err_body)
+            err_msg = err_json.get('error', {}).get('message', f"Groq API Error {e.code}")
+            return jsonify({'error': err_msg}), e.code
+        except Exception:
+            return jsonify({'error': f"Groq API Error {e.code}: {e.reason}"}), e.code
+    except Exception as e:
+        return jsonify({'error': f"Failed to connect to Groq: {str(e)}"}), 500
 
 
 # ─── Main ──────────────────────────────────────────────────────────

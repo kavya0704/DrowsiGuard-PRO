@@ -1,9 +1,13 @@
 /**
- * AI Driver Drowsiness Detection System
+ * DrowsiGuard PRO — AI Driver Drowsiness Detection System
  * Frontend Dashboard Logic — Hybrid Desktop/Mobile
  * 
- * Desktop: polls server for metrics (server-side OpenCV + MediaPipe Python)
- * Mobile:  opens phone camera via getUserMedia + runs MediaPipe JS client-side
+ * PRO Features:
+ * - Real-time EAR/MAR chart (canvas-based, 60s rolling window)
+ * - Session summary stats (duration, alerts, blink rate, avg fatigue)
+ * - Alert history log (last 8 events with timestamps)
+ * - Dark/Light theme toggle
+ * - Enhanced micro-animations
  */
 
 // ─── Device Detection ───────────────────────────────────────────
@@ -12,6 +16,9 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 
 // ─── Constants ──────────────────────────────────────────────────
 const POLL_INTERVAL = 200;
+const CHART_HISTORY_SECONDS = 60;
+const CHART_SAMPLE_MS = 200;
+const MAX_ALERT_HISTORY = 8;
 const API = {
     STATUS: '/status',
     START: '/start',
@@ -86,7 +93,26 @@ const dom = {
     earFramesVal: document.getElementById('earFramesVal'),
     marFramesVal: document.getElementById('marFramesVal'),
     applyThresholds: document.getElementById('applyThresholds'),
-    alertOverlay: document.getElementById('alertOverlay')
+    alertOverlay: document.getElementById('alertOverlay'),
+    // PRO elements
+    themeToggle: document.getElementById('themeToggle'),
+    realtimeChart: document.getElementById('realtimeChart'),
+    sessionDuration: document.getElementById('sessionDuration'),
+    sessionAlerts: document.getElementById('sessionAlerts'),
+    sessionBlinkRate: document.getElementById('sessionBlinkRate'),
+    sessionAvgFatigue: document.getElementById('sessionAvgFatigue'),
+    alertHistoryList: document.getElementById('alertHistoryList'),
+    alertHistoryEmpty: document.getElementById('alertHistoryEmpty'),
+    // Copilot elements
+    copilotTtsToggle: document.getElementById('copilotTtsToggle'),
+    chatMessages: document.getElementById('chatMessages'),
+    copilotInput: document.getElementById('copilotInput'),
+    copilotSendBtn: document.getElementById('copilotSendBtn'),
+    copilotApiKey: document.getElementById('copilotApiKey'),
+    copilotModel: document.getElementById('copilotModel'),
+    copilotBaseUrl: document.getElementById('copilotBaseUrl'),
+    saveCopilotSettings: document.getElementById('saveCopilotSettings'),
+    copilotChatContainer: document.getElementById('copilotChatContainer')
 };
 
 // ─── State ──────────────────────────────────────────────────────
@@ -106,6 +132,19 @@ let startTime = null;
 let fpsCounter = 0;
 let lastFpsTime = 0;
 let currentFps = 0;
+
+// ─── PRO State ──────────────────────────────────────────────────
+let chartData = { ear: [], mar: [], timestamps: [] };
+let alertHistory = [];
+let sessionAlertCount = 0;
+let fatigueAccumulator = [];
+let lastDrowsyState = false;
+let lastYawnState = false;
+let chartAnimFrame = null;
+
+// AI Copilot state
+let copilotMessages = [];
+let lastAutoAlertTime = 0;
 
 // ─── API Helpers ────────────────────────────────────────────────
 async function apiGet(url) {
@@ -135,6 +174,10 @@ function formatUptime(seconds) {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+function formatAlertTime(date) {
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+}
+
 function euclideanDist(p1, p2) {
     return Math.sqrt((p1.x - p2.x) ** 2 + (p1.y - p2.y) ** 2);
 }
@@ -161,6 +204,240 @@ function calcMAR(landmarks) {
     const h = euclideanDist(left, right);
     if (h === 0) return 0;
     return (v1 + v2 + v3) / (3.0 * h);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRO: Real-Time Chart Engine
+// ═══════════════════════════════════════════════════════════════
+function addChartDataPoint(ear, mar) {
+    const now = Date.now();
+    chartData.ear.push(ear);
+    chartData.mar.push(mar);
+    chartData.timestamps.push(now);
+
+    // Trim to last 60 seconds
+    const cutoff = now - (CHART_HISTORY_SECONDS * 1000);
+    while (chartData.timestamps.length > 0 && chartData.timestamps[0] < cutoff) {
+        chartData.ear.shift();
+        chartData.mar.shift();
+        chartData.timestamps.shift();
+    }
+}
+
+function drawRealtimeChart() {
+    const canvas = dom.realtimeChart;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const w = rect.width;
+    const h = rect.height;
+
+    // Clear
+    ctx.clearRect(0, 0, w, h);
+
+    // Background grid
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+    const gridColor = isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.05)';
+    const textColor = isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)';
+
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 0.5;
+    for (let i = 0; i <= 4; i++) {
+        const y = (h / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+    }
+
+    // Y-axis labels
+    ctx.fillStyle = textColor;
+    ctx.font = '9px "JetBrains Mono", monospace';
+    ctx.textAlign = 'left';
+    const yLabels = ['1.0', '0.75', '0.5', '0.25', '0'];
+    for (let i = 0; i <= 4; i++) {
+        ctx.fillText(yLabels[i], 2, (h / 4) * i + 10);
+    }
+
+    if (chartData.ear.length < 2) return;
+
+    // EAR threshold line
+    const earThLineY = h - (EAR_THRESHOLD / 1.0) * h;
+    ctx.setLineDash([4, 4]);
+    ctx.strokeStyle = 'rgba(255, 211, 42, 0.35)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, earThLineY);
+    ctx.lineTo(w, earThLineY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // MAR threshold line
+    const marThLineY = h - (MAR_THRESHOLD / 1.0) * h;
+    ctx.setLineDash([2, 4]);
+    ctx.strokeStyle = 'rgba(255, 211, 42, 0.25)';
+    ctx.beginPath();
+    ctx.moveTo(0, marThLineY);
+    ctx.lineTo(w, marThLineY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const len = chartData.ear.length;
+    const stepX = w / Math.max(len - 1, 1);
+
+    // Draw EAR line
+    drawSmoothLine(ctx, chartData.ear, stepX, w, h, '#00d4ff', 'rgba(0, 212, 255, 0.08)');
+    // Draw MAR line
+    drawSmoothLine(ctx, chartData.mar, stepX, w, h, '#ff9f43', 'rgba(255, 159, 67, 0.06)');
+}
+
+function drawSmoothLine(ctx, data, stepX, w, h, color, fillColor) {
+    if (data.length < 2) return;
+
+    ctx.beginPath();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+
+    for (let i = 0; i < data.length; i++) {
+        const x = i * stepX;
+        const y = h - (Math.min(data[i], 1.0) / 1.0) * h;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Fill gradient under line
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, fillColor);
+    grad.addColorStop(1, 'transparent');
+
+    ctx.lineTo((data.length - 1) * stepX, h);
+    ctx.lineTo(0, h);
+    ctx.closePath();
+    ctx.fillStyle = grad;
+    ctx.fill();
+}
+
+function startChartAnimation() {
+    function animate() {
+        drawRealtimeChart();
+        chartAnimFrame = requestAnimationFrame(animate);
+    }
+    animate();
+}
+
+function stopChartAnimation() {
+    if (chartAnimFrame) {
+        cancelAnimationFrame(chartAnimFrame);
+        chartAnimFrame = null;
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRO: Session Summary Tracker
+// ═══════════════════════════════════════════════════════════════
+function updateSessionSummary(data) {
+    if (!data) return;
+
+    // Duration
+    const uptime = data.uptime || 0;
+    dom.sessionDuration.textContent = formatUptime(uptime);
+
+    // Alert count
+    dom.sessionAlerts.textContent = sessionAlertCount;
+
+    // Blink rate (blinks per minute)
+    const minutes = uptime / 60;
+    const blinkRate = minutes > 0 ? ((data.blink_count || 0) / minutes).toFixed(1) : '0';
+    dom.sessionBlinkRate.textContent = blinkRate + ' /min';
+
+    // Average fatigue
+    if (data.fatigue_level !== undefined) {
+        fatigueAccumulator.push(data.fatigue_level);
+        // Keep max 300 samples (60 seconds at 5Hz)
+        if (fatigueAccumulator.length > 300) fatigueAccumulator.shift();
+    }
+    const avgFatigue = fatigueAccumulator.length > 0
+        ? Math.round(fatigueAccumulator.reduce((a, b) => a + b, 0) / fatigueAccumulator.length)
+        : 0;
+    dom.sessionAvgFatigue.textContent = avgFatigue + '%';
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRO: Alert History Manager
+// ═══════════════════════════════════════════════════════════════
+function checkAndLogAlerts(data) {
+    if (!data) return;
+
+    // Detect rising edge of drowsy alert
+    if (data.drowsy_alert && !lastDrowsyState) {
+        addAlertToHistory('drowsy', '😴 Drowsiness Detected');
+        sessionAlertCount++;
+    }
+
+    // Detect rising edge of yawn alert
+    if (data.yawn_alert && !lastYawnState) {
+        addAlertToHistory('yawn', '🥱 Yawning Detected');
+        sessionAlertCount++;
+    }
+
+    lastDrowsyState = data.drowsy_alert || false;
+    lastYawnState = data.yawn_alert || false;
+}
+
+function addAlertToHistory(type, message) {
+    const now = new Date();
+    alertHistory.unshift({ type, message, time: now });
+    if (alertHistory.length > MAX_ALERT_HISTORY) alertHistory.pop();
+    renderAlertHistory();
+}
+
+function renderAlertHistory() {
+    if (!dom.alertHistoryList) return;
+
+    if (alertHistory.length === 0) {
+        dom.alertHistoryList.innerHTML = '<div class="alert-history-empty">No alerts yet</div>';
+        return;
+    }
+
+    dom.alertHistoryList.innerHTML = alertHistory.map(a => `
+        <div class="alert-history-item ${a.type === 'yawn' ? 'yawn' : ''}">
+            <span class="alert-time">${formatAlertTime(a.time)}</span>
+            <span class="alert-msg">${a.message}</span>
+        </div>
+    `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PRO: Theme Toggle
+// ═══════════════════════════════════════════════════════════════
+function initTheme() {
+    const saved = localStorage.getItem('drowsiguard-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', saved);
+    updateThemeIcon(saved);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('drowsiguard-theme', next);
+    updateThemeIcon(next);
+}
+
+function updateThemeIcon(theme) {
+    if (dom.themeToggle) {
+        dom.themeToggle.textContent = theme === 'dark' ? '🌙' : '☀️';
+    }
 }
 
 // ─── Update UI from Data ────────────────────────────────────────
@@ -266,6 +543,20 @@ function updateUI(data) {
     } else {
         dom.alertOverlay.classList.add('hidden');
         dom.videoContainer.classList.remove('alert-active');
+    }
+
+    // PRO: Chart data
+    addChartDataPoint(data.ear || 0, data.mar || 0);
+
+    // PRO: Alert history
+    checkAndLogAlerts(data);
+
+    // PRO: Session summary
+    updateSessionSummary(data);
+
+    // Auto warning if fatigue is high
+    if (data.fatigue_level >= 70) {
+        triggerCopilotAutoWarning(data.fatigue_level);
     }
 }
 
@@ -650,6 +941,226 @@ function stopMobile() {
 }
 
 // ═══════════════════════════════════════════════════════════════
+//  PRO: AI Copilot Assistant Engine
+// ═══════════════════════════════════════════════════════════════
+
+// Default configs
+const COPILOT_DEFAULTS = {
+    apiKey: "",
+    model: "openai/gpt-oss-120b",
+    baseUrl: "https://api.groq.com/openai/v1"
+};
+
+function initCopilot() {
+    // Load settings from local storage or use defaults
+    const key = localStorage.getItem('drowsiguard-copilot-key') || COPILOT_DEFAULTS.apiKey;
+    const model = localStorage.getItem('drowsiguard-copilot-model') || COPILOT_DEFAULTS.model;
+    const url = localStorage.getItem('drowsiguard-copilot-url') || COPILOT_DEFAULTS.baseUrl;
+    const tts = localStorage.getItem('drowsiguard-copilot-tts') !== 'false';
+
+    if (dom.copilotApiKey) dom.copilotApiKey.value = key;
+    if (dom.copilotModel) dom.copilotModel.value = model;
+    if (dom.copilotBaseUrl) dom.copilotBaseUrl.value = url;
+    if (dom.copilotTtsToggle) dom.copilotTtsToggle.checked = tts;
+
+    // Bind event listeners
+    if (dom.copilotSendBtn) {
+        dom.copilotSendBtn.addEventListener('click', sendCopilotMessage);
+    }
+    if (dom.copilotInput) {
+        dom.copilotInput.addEventListener('keydown', e => {
+            if (e.key === 'Enter') sendCopilotMessage();
+        });
+    }
+    if (dom.saveCopilotSettings) {
+        dom.saveCopilotSettings.addEventListener('click', saveCopilotSettingsFn);
+    }
+    if (dom.copilotTtsToggle) {
+        dom.copilotTtsToggle.addEventListener('change', () => {
+            localStorage.setItem('drowsiguard-copilot-tts', dom.copilotTtsToggle.checked);
+        });
+    }
+}
+
+function speakText(text) {
+    if (!dom.copilotTtsToggle || !dom.copilotTtsToggle.checked) return;
+    if (!window.speechSynthesis) return;
+
+    // Cancel currently speaking
+    window.speechSynthesis.cancel();
+
+    // Remove emojis or special symbols for cleaner TTS
+    const cleanText = text.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, "")
+                          .replace(/[⚠️🥱😴🤖👄👁️⚡📊⚙️🔧🔊📢]/g, "");
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    window.speechSynthesis.speak(utterance);
+}
+
+function addChatMessage(sender, text, type) {
+    if (!dom.chatMessages) return;
+
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${type}`;
+    msgDiv.innerHTML = `
+        <span class="message-sender">${sender}</span>
+        <p class="message-text">${text}</p>
+    `;
+    dom.chatMessages.appendChild(msgDiv);
+
+    // Auto-scroll
+    if (dom.copilotChatContainer) {
+        dom.copilotChatContainer.scrollTop = dom.copilotChatContainer.scrollHeight;
+    }
+}
+
+async function sendCopilotMessage() {
+    const input = dom.copilotInput;
+    if (!input) return;
+
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = '';
+    addChatMessage('👤 Driver', text, 'user');
+
+    // Add user message to history
+    copilotMessages.push({ role: 'user', content: text });
+
+    // Show thinking indicator
+    const thinkingId = 'thinking_' + Date.now();
+    const thinkingDiv = document.createElement('div');
+    thinkingDiv.className = 'chat-message ai thinking';
+    thinkingDiv.id = thinkingId;
+    thinkingDiv.innerHTML = `
+        <span class="message-sender">🤖 Copilot</span>
+        <p class="message-text">Thinking...</p>
+    `;
+    dom.chatMessages.appendChild(thinkingDiv);
+    if (dom.copilotChatContainer) {
+        dom.copilotChatContainer.scrollTop = dom.copilotChatContainer.scrollHeight;
+    }
+
+    // Disable input
+    input.disabled = true;
+    if (dom.copilotSendBtn) dom.copilotSendBtn.disabled = true;
+
+    // Fetch config
+    const key = dom.copilotApiKey ? dom.copilotApiKey.value : '';
+    const model = dom.copilotModel ? dom.copilotModel.value : '';
+    const baseUrl = dom.copilotBaseUrl ? dom.copilotBaseUrl.value : '';
+
+    try {
+        let aiText = '';
+        
+        // If not isMobile (i.e. Desktop/Flask mode), call our python backend proxy
+        if (!isMobile) {
+            const res = await apiPost('/api/chat', {
+                messages: copilotMessages,
+                api_key: key,
+                model: model,
+                base_url: baseUrl
+            });
+            if (res && res.choices && res.choices.length > 0) {
+                aiText = res.choices[0].message.content;
+            } else if (res && res.error) {
+                throw new Error(res.error);
+            } else {
+                throw new Error('Received empty response from Copilot server.');
+            }
+        } else {
+            // Mobile mode: call Groq API directly from browser
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${key}`
+            };
+            
+            const systemPrompt = "You are 'DrowsiGuard AI Copilot', an interactive AI assistant integrated into a Driver Drowsiness Detection System. Your primary goal is to keep the driver awake, engaged, and safe. Keep your responses relatively short, highly conversational, and energetic. You can offer to play a trivia game, tell a joke, share an interesting fact, or talk about a topic of interest. If the user tells you they are tired or if a drowsiness alert is triggered, show concern, advise them to pull over if they are too tired, and offer to engage them in conversation to help keep them awake.";
+            const fullMsgs = [{ role: 'system', content: systemPrompt }, ...copilotMessages];
+
+            const res = await fetch(`${baseUrl.replace(/\/$/, '')}/chat/completions`, {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({
+                    model: model,
+                    messages: fullMsgs,
+                    max_tokens: 1000
+                })
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                let errMsg = `HTTP Error ${res.status}`;
+                try {
+                    const errJson = JSON.parse(errText);
+                    errMsg = errJson.error.message || errMsg;
+                } catch(e){}
+                throw new Error(errMsg);
+            }
+
+            const data = await res.json();
+            if (data && data.choices && data.choices.length > 0) {
+                aiText = data.choices[0].message.content;
+            } else {
+                throw new Error('Received empty response from Groq API.');
+            }
+        }
+
+        // Remove thinking message
+        const thinkingElement = document.getElementById(thinkingId);
+        if (thinkingElement) thinkingElement.remove();
+
+        // Add assistant message to history & UI
+        copilotMessages.push({ role: 'assistant', content: aiText });
+        addChatMessage('🤖 Copilot', aiText, 'ai');
+        
+        // Speak AI text
+        speakText(aiText);
+
+    } catch (err) {
+        console.error('Copilot error:', err);
+        const thinkingElement = document.getElementById(thinkingId);
+        if (thinkingElement) thinkingElement.remove();
+        addChatMessage('⚠️ System', `Error: ${err.message}`, 'error');
+    } finally {
+        input.disabled = false;
+        if (dom.copilotSendBtn) dom.copilotSendBtn.disabled = false;
+        input.focus();
+    }
+}
+
+function saveCopilotSettingsFn() {
+    const key = dom.copilotApiKey ? dom.copilotApiKey.value.trim() : '';
+    const model = dom.copilotModel ? dom.copilotModel.value.trim() : '';
+    const url = dom.copilotBaseUrl ? dom.copilotBaseUrl.value.trim() : '';
+
+    localStorage.setItem('drowsiguard-copilot-key', key);
+    localStorage.setItem('drowsiguard-copilot-model', model);
+    localStorage.setItem('drowsiguard-copilot-url', url);
+
+    if (dom.saveCopilotSettings) {
+        dom.saveCopilotSettings.textContent = '✓ Saved!';
+        setTimeout(() => { dom.saveCopilotSettings.textContent = 'Save Settings'; }, 2000);
+    }
+}
+
+function triggerCopilotAutoWarning(fatigueLevel) {
+    const now = Date.now();
+    if (now - lastAutoAlertTime < 45000) return; // 45s cooldown
+    lastAutoAlertTime = now;
+
+    const warningText = `Warning! High fatigue detected (${fatigueLevel}%). Please pull over to rest safely. I am here to talk if you need to stay alert. would you like to hear a joke or play a quick game?`;
+    
+    // Add to history
+    copilotMessages.push({ role: 'assistant', content: warningText });
+    addChatMessage('🤖 Copilot', `⚠️ High Fatigue warning triggered (${fatigueLevel}%). Let's chat to stay alert!`, 'system');
+    
+    speakText(warningText);
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  Common UI State Management
 // ═══════════════════════════════════════════════════════════════
 function setRunningState() {
@@ -661,6 +1172,18 @@ function setRunningState() {
     dom.videoPlaceholder.classList.add('hidden');
     dom.liveBadge.classList.remove('hidden');
     dom.modeBadge.classList.remove('hidden');
+
+    // PRO: Reset session stats
+    sessionAlertCount = 0;
+    fatigueAccumulator = [];
+    alertHistory = [];
+    chartData = { ear: [], mar: [], timestamps: [] };
+    lastDrowsyState = false;
+    lastYawnState = false;
+    renderAlertHistory();
+
+    // PRO: Start chart
+    startChartAnimation();
 }
 
 function setStoppedState() {
@@ -680,6 +1203,9 @@ function setStoppedState() {
     dom.eyeStatusText.textContent = '\u2014';
     dom.mouthIndicator.className = 'status-indicator inactive';
     dom.mouthStatusText.textContent = '\u2014';
+
+    // PRO: Stop chart
+    stopChartAnimation();
 }
 
 // ─── Event Listeners ────────────────────────────────────────────
@@ -719,6 +1245,11 @@ dom.privacyToggle.addEventListener('change', async () => {
     if (!isMobile) await apiPost(API.TOGGLE_PRIVACY);
 });
 
+// PRO: Theme toggle
+if (dom.themeToggle) {
+    dom.themeToggle.addEventListener('click', toggleTheme);
+}
+
 // Threshold sliders
 dom.earThreshold.addEventListener('input', e => { dom.earThresholdVal.textContent = parseFloat(e.target.value).toFixed(2); });
 dom.marThreshold.addEventListener('input', e => { dom.marThresholdVal.textContent = parseFloat(e.target.value).toFixed(2); });
@@ -757,10 +1288,19 @@ document.addEventListener('keydown', (e) => {
         dom.privacyToggle.checked = !dom.privacyToggle.checked;
         dom.privacyToggle.dispatchEvent(new Event('change'));
     }
+    if (e.key === 't' || e.key === 'T') {
+        toggleTheme();
+    }
 });
 
 // ─── Initialize ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+    // PRO: Init theme
+    initTheme();
+
+    // AI Copilot initialization
+    initCopilot();
+
     if (isMobile) {
         // Mobile mode: hide camera URL input, set mode badge
         dom.cameraUrlGroup.style.display = 'none';
@@ -768,13 +1308,13 @@ document.addEventListener('DOMContentLoaded', () => {
         dom.modeIcon.textContent = '\ud83d\udcf1';
         dom.modeText.textContent = 'Phone Camera';
         dom.placeholderText.textContent = 'Tap Start to open your camera and begin detection';
-        console.log('\ud83d\udcf1 DrowsiGuard: Mobile mode — using phone camera + client-side AI');
+        console.log('\ud83d\udcf1 DrowsiGuard PRO: Mobile mode — using phone camera + client-side AI');
     } else {
         // Desktop mode
         dom.modeIcon.textContent = '\ud83d\udcbb';
         dom.modeText.textContent = 'Desktop';
         dom.placeholderText.textContent = 'Enter IP Webcam URL or leave empty for laptop webcam';
-        console.log('\ud83d\udcbb DrowsiGuard: Desktop mode — using server-side AI');
+        console.log('\ud83d\udcbb DrowsiGuard PRO: Desktop mode — using server-side AI');
 
         // Check if already running on page load
         apiGet(API.STATUS).then(data => {
@@ -787,5 +1327,5 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    console.log('Keyboard shortcuts: S=Start, X=Stop, M=Mute, P=Privacy');
+    console.log('⌨️ Keyboard shortcuts: S=Start, X=Stop, M=Mute, P=Privacy, T=Theme');
 });

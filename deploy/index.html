@@ -3,378 +3,398 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="description" content="AI-powered Driver Drowsiness Detection — Real-time monitoring using your phone camera.">
-    <meta name="theme-color" content="#060a18">
+    <meta name="description" content="DrowsiGuard Pro — Next-Gen AI Driver Monitoring HUD. Real-time drowsiness detection with holographic interface.">
+    <meta name="theme-color" content="#050510">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>DrowsiGuard — AI Drowsiness Detection</title>
+    <title>DrowsiGuard Pro — AI Driver Monitoring HUD</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<style>
-:root{--bg-primary:#060a18;--bg-secondary:#0c1229;--bg-card:rgba(15,23,55,.65);--bg-card-hover:rgba(20,30,70,.75);--accent-blue:#00d4ff;--accent-purple:#7c3aed;--accent-green:#00ff88;--accent-red:#ff3366;--accent-orange:#ff9f43;--accent-yellow:#ffd32a;--text-primary:#e8eaf6;--text-secondary:#8890b5;--text-muted:#4a5280;--border-glass:rgba(255,255,255,.06);--border-glow:rgba(0,212,255,.2);--glass-blur:16px;--shadow-card:0 4px 24px rgba(0,0,0,.3);--shadow-glow-red:0 0 30px rgba(255,51,102,.2);--gap:12px;--radius:14px;--radius-sm:8px;--transition:all .3s cubic-bezier(.4,0,.2,1)}
-*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html{font-size:14px;scroll-behavior:smooth}
-body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg-primary);color:var(--text-primary);min-height:100vh;min-height:100dvh;overflow-x:hidden;background-image:radial-gradient(ellipse at 20% 0%,rgba(124,58,237,.08) 0%,transparent 50%),radial-gradient(ellipse at 80% 100%,rgba(0,212,255,.06) 0%,transparent 50%)}
-::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg-secondary)}::-webkit-scrollbar-thumb{background:var(--text-muted);border-radius:2px}
-
-.header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:rgba(10,14,39,.85);backdrop-filter:blur(var(--glass-blur));border-bottom:1px solid var(--border-glass);position:sticky;top:0;z-index:100}
-.logo{display:flex;align-items:center;gap:10px}
-.logo-icon{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(0,212,255,.08);border-radius:10px;border:1px solid rgba(0,212,255,.15)}
-.logo-text h1{font-size:1.1rem;font-weight:700;background:linear-gradient(135deg,var(--accent-blue),var(--accent-purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.logo-subtitle{font-size:.6rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
-.header-right{display:flex;align-items:center;gap:10px}
-.system-status{display:flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bg-card);border-radius:16px;border:1px solid var(--border-glass);font-size:.75rem;font-weight:500}
-.status-dot{width:7px;height:7px;border-radius:50%;transition:var(--transition)}
-.status-dot.offline{background:var(--text-muted)}
-.status-dot.online{background:var(--accent-green);box-shadow:0 0 8px var(--accent-green);animation:pulse-dot 2s infinite}
-.status-dot.alert{background:var(--accent-red);box-shadow:0 0 8px var(--accent-red);animation:pulse-dot .5s infinite}
-@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.4}}
-.stat-pill{display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--bg-card);border-radius:12px;border:1px solid var(--border-glass);font-size:.7rem}
-.stat-label{color:var(--text-muted);font-weight:500;text-transform:uppercase;font-size:.6rem;letter-spacing:.04em}
-.stat-value{color:var(--accent-blue);font-family:'JetBrains Mono',monospace;font-weight:500}
-
-.dashboard{display:flex;flex-direction:column;gap:var(--gap);padding:var(--gap) 12px;max-width:600px;margin:0 auto}
-
-.video-container{position:relative;background:var(--bg-card);border-radius:var(--radius);border:1px solid var(--border-glass);overflow:hidden;aspect-ratio:4/3;box-shadow:var(--shadow-card);transition:var(--transition)}
-.video-container.alert-active{border-color:var(--accent-red);box-shadow:var(--shadow-glow-red);animation:alert-border-pulse 1s infinite}
-@keyframes alert-border-pulse{0%,100%{border-color:var(--accent-red);box-shadow:0 0 20px rgba(255,51,102,.2)}50%{border-color:rgba(255,51,102,.4);box-shadow:0 0 40px rgba(255,51,102,.35)}}
-.video-feed{width:100%;height:100%;object-fit:cover;display:block}
-#mobileVideo{object-fit:cover;transform:scaleX(-1)}
-#mobileCanvas{position:absolute;inset:0;z-index:1;pointer-events:none}
-
-.video-placeholder{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-card);text-align:center;gap:6px;z-index:2}
-.video-placeholder.hidden{display:none}
-.placeholder-icon{font-size:2.5rem;opacity:.5}
-.video-placeholder h3{color:var(--text-secondary);font-weight:500;font-size:1rem}
-.video-placeholder p{color:var(--text-muted);font-size:.8rem;max-width:260px}
-
-.live-badge{position:absolute;top:10px;left:10px;display:flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(255,51,102,.85);border-radius:4px;font-size:.65rem;font-weight:700;letter-spacing:.1em;z-index:3}
-.live-badge.hidden{display:none}
-.live-dot{width:5px;height:5px;background:#fff;border-radius:50%;animation:pulse-dot 1.5s infinite}
-.mode-badge{position:absolute;top:10px;right:10px;display:flex;align-items:center;gap:4px;padding:3px 10px;background:rgba(0,212,255,.75);border-radius:4px;font-size:.65rem;font-weight:600;z-index:3;backdrop-filter:blur(4px);border:1px solid rgba(0,212,255,.4)}
-.mode-badge.hidden{display:none}
-
-.control-buttons{display:flex;gap:8px;justify-content:center}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:12px 24px;border:none;border-radius:var(--radius-sm);font-family:'Inter',sans-serif;font-size:.9rem;font-weight:600;cursor:pointer;transition:var(--transition);white-space:nowrap;flex:1;justify-content:center}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-primary{background:linear-gradient(135deg,var(--accent-blue),#0099cc);color:#fff;box-shadow:0 2px 12px rgba(0,212,255,.25)}
-.btn-primary:hover:not(:disabled){box-shadow:0 4px 20px rgba(0,212,255,.4)}
-.btn-danger{background:linear-gradient(135deg,var(--accent-red),#cc0033);color:#fff;box-shadow:0 2px 12px rgba(255,51,102,.25)}
-
-.metrics-grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
-.metric-card{background:var(--bg-card);border:1px solid var(--border-glass);border-radius:var(--radius);backdrop-filter:blur(var(--glass-blur));box-shadow:var(--shadow-card);overflow:hidden;animation:fadeIn .5s ease forwards}
-.metric-card.alert{border-color:var(--accent-red);box-shadow:var(--shadow-glow-red)}
-.metric-card.warning{border-color:var(--accent-orange)}
-.metric-header{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid var(--border-glass)}
-.metric-header h3{font-size:.78rem;font-weight:600;flex:1}
-.metric-icon{font-size:.85rem}
-.metric-body{padding:10px 12px;display:flex;flex-direction:column;gap:8px}
-.status-display{display:flex;align-items:center;gap:8px}
-.status-indicator{width:10px;height:10px;border-radius:50%;transition:var(--transition)}
-.status-indicator.open{background:var(--accent-green);box-shadow:0 0 8px rgba(0,255,136,.4)}
-.status-indicator.closed{background:var(--accent-red);box-shadow:0 0 8px rgba(255,51,102,.4);animation:pulse-dot .6s infinite}
-.status-indicator.yawn{background:var(--accent-orange);box-shadow:0 0 8px rgba(255,159,67,.4)}
-.status-indicator.inactive{background:var(--text-muted)}
-.status-label{font-size:1rem;font-weight:700}
-.metric-detail{display:flex;justify-content:space-between;align-items:center}
-.detail-label{font-size:.72rem;color:var(--text-secondary)}
-.detail-value{font-size:.78rem;font-weight:600}
-.detail-value.mono{font-family:'JetBrains Mono',monospace}
-
-.fatigue-card{grid-column:span 2}
-.fatigue-gauge{display:flex;align-items:center;gap:16px;padding:4px 0}
-.fatigue-ring{position:relative;width:80px;height:80px;flex-shrink:0}
-.fatigue-ring svg{width:100%;height:100%;transform:rotate(-90deg)}
-.ring-bg{fill:none;stroke:rgba(255,255,255,.06);stroke-width:8}
-.ring-fill{fill:none;stroke:var(--accent-green);stroke-width:8;stroke-linecap:round;stroke-dasharray:326.73;stroke-dashoffset:326.73;transition:stroke-dashoffset .5s ease,stroke .5s ease}
-.fatigue-percent{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.2rem;font-weight:800;font-family:'JetBrains Mono',monospace}
-.fatigue-info{display:flex;flex-direction:column;gap:4px;flex:1}
-.fatigue-label{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--accent-green);transition:color .3s ease}
-
-.controls-card{grid-column:span 2}
-.toggle-row{display:flex;justify-content:space-between;align-items:center;font-size:.82rem;color:var(--text-secondary)}
-.toggle-switch{position:relative;display:inline-block;width:36px;height:20px}
-.toggle-switch input{opacity:0;width:0;height:0}
-.toggle-slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.08);border-radius:10px;transition:var(--transition)}
-.toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:var(--text-muted);border-radius:50%;transition:var(--transition)}
-.toggle-switch input:checked+.toggle-slider{background:rgba(0,212,255,.25)}
-.toggle-switch input:checked+.toggle-slider::before{transform:translateX(16px);background:var(--accent-blue);box-shadow:0 0 6px rgba(0,212,255,.4)}
-.face-status{font-weight:600;font-size:.78rem}
-.face-status.detected{color:var(--accent-green)}
-.face-status.not-detected{color:var(--accent-red)}
-
-.alert-overlay{position:fixed;inset:0;background:rgba(255,20,60,.12);backdrop-filter:blur(2px);z-index:1000;display:flex;align-items:center;justify-content:center;animation:alert-flash 1s infinite;pointer-events:none}
-.alert-overlay.hidden{display:none}
-@keyframes alert-flash{0%,100%{background:rgba(255,20,60,.06)}50%{background:rgba(255,20,60,.15)}}
-.alert-content{text-align:center;animation:alert-bounce .8s infinite alternate}
-@keyframes alert-bounce{from{transform:scale(1)}to{transform:scale(1.05)}}
-.alert-content .alert-icon{font-size:3rem;margin-bottom:8px}
-.alert-content h1{font-size:1.5rem;font-weight:800;color:var(--accent-red);text-shadow:0 0 40px rgba(255,51,102,.5)}
-.alert-content p{font-size:.9rem;color:var(--text-secondary);margin-top:6px}
-
-.footer{text-align:center;padding:10px 12px;border-top:1px solid var(--border-glass);color:var(--text-muted);font-size:.7rem}
-.hidden{display:none !important}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-</style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Exo+2:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css?v=20260409b">
 </head>
 <body>
+
+    <!-- ═══ Background Effects Layer ═══ -->
+    <div class="bg-layer">
+        <canvas id="bgCanvas" class="bg-canvas"></canvas>
+        <div class="scan-lines"></div>
+        <div class="vignette"></div>
+        <div class="hex-grid"></div>
+    </div>
+
+    <!-- ═══ Alert Overlay (Full-screen HUD Alarm) ═══ -->
     <div id="alertOverlay" class="alert-overlay hidden">
+        <div class="alert-scan-lines"></div>
+        <div class="alert-hex-burst">
+            <div class="hex-ring h1"></div>
+            <div class="hex-ring h2"></div>
+            <div class="hex-ring h3"></div>
+        </div>
         <div class="alert-content">
-            <div class="alert-icon">⚠️</div>
-            <h1>DROWSINESS DETECTED!</h1>
-            <p>Please take a break and rest</p>
+            <div class="alert-icon-wrap">
+                <svg class="alert-triangle" viewBox="0 0 80 70">
+                    <path d="M40 5 L75 65 L5 65 Z" fill="none" stroke="#FF003C" stroke-width="2.5"/>
+                    <text x="40" y="52" text-anchor="middle" fill="#FF003C" font-size="28" font-family="Orbitron">!</text>
+                </svg>
+            </div>
+            <h1 class="alert-title">DROWSINESS DETECTED</h1>
+            <p class="alert-subtitle">PULL OVER IMMEDIATELY — SAFETY PROTOCOL ACTIVATED</p>
+            <div class="alert-pulse-bar"><div class="alert-pulse-fill"></div></div>
         </div>
     </div>
 
-    <header class="header">
-        <div class="logo">
-            <div class="logo-icon">
-                <svg width="24" height="24" viewBox="0 0 28 28" fill="none">
-                    <circle cx="14" cy="14" r="12" stroke="url(#g1)" stroke-width="2.5"/>
-                    <circle cx="10" cy="12" r="2" fill="#00d4ff"/>
-                    <circle cx="18" cy="12" r="2" fill="#00d4ff"/>
-                    <path d="M9 18 C11 20, 17 20, 19 18" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
-                    <defs><linearGradient id="g1" x1="0" y1="0" x2="28" y2="28"><stop offset="0%" stop-color="#00d4ff"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
-                </svg>
+    <!-- ═══ Settings Drawer (Slide-out Right) ═══ -->
+    <div id="settingsDrawer" class="settings-drawer">
+        <div class="drawer-header">
+            <h3><span class="drawer-icon">⚙</span> SYSTEM CONFIG</h3>
+            <button id="closeDrawer" class="drawer-close">✕</button>
+        </div>
+        <div class="drawer-body">
+            <div class="drawer-section">
+                <h4>ALERT SYSTEM</h4>
+                <div class="toggle-row"><span>🔊 Alarm Sound</span><label class="neo-toggle"><input type="checkbox" id="soundToggle" checked><span class="neo-slider"></span></label></div>
+                <div class="toggle-row"><span>📳 Vibration</span><label class="neo-toggle"><input type="checkbox" id="vibrateToggle" checked><span class="neo-slider"></span></label></div>
             </div>
-            <div class="logo-text">
-                <h1>DrowsiGuard</h1>
-                <span class="logo-subtitle">AI Drowsiness Detection</span>
+            <div class="drawer-section">
+                <h4>DISPLAY</h4>
+                <div class="toggle-row"><span>☀️ Keep Screen On</span><label class="neo-toggle"><input type="checkbox" id="wakeLockToggle" checked><span class="neo-slider"></span></label></div>
+                <div class="toggle-row"><span>🔒 Privacy Mode</span><label class="neo-toggle"><input type="checkbox" id="privacyToggle"><span class="neo-slider"></span></label></div>
+                <div class="toggle-row"><span>🔥 Heatmap Overlay</span><label class="neo-toggle"><input type="checkbox" id="heatmapToggle"><span class="neo-slider"></span></label></div>
+            </div>
+            <div class="drawer-section">
+                <h4>SENSITIVITY</h4>
+                <div class="slider-group">
+                    <div class="slider-label"><span>👁️ Eye Threshold</span><span class="slider-val" id="earThVal">0.22</span></div>
+                    <input type="range" id="earSlider" min="0.15" max="0.30" step="0.01" value="0.22" class="neo-slider-input">
+                </div>
+                <div class="slider-group">
+                    <div class="slider-label"><span>👄 Yawn Threshold</span><span class="slider-val" id="marThVal">0.65</span></div>
+                    <input type="range" id="marSlider" min="0.40" max="0.90" step="0.05" value="0.65" class="neo-slider-input">
+                </div>
             </div>
         </div>
-        <div class="header-right">
-            <div class="system-status">
-                <span class="status-dot offline" id="statusDot"></span>
-                <span id="statusText">Offline</span>
+    </div>
+
+    <!-- ═══ Copilot Drawer (Slide-out Right) ═══ -->
+    <div id="copilotDrawer" class="settings-drawer">
+        <div class="drawer-header">
+            <h3><span class="drawer-icon">🤖</span> AI COPILOT</h3>
+            <button id="closeCopilotDrawer" class="drawer-close">✕</button>
+        </div>
+        <div class="drawer-body copilot-drawer-body">
+            <!-- Voice assistant status and voice settings -->
+            <div class="drawer-section">
+                <div class="toggle-row">
+                    <span>🔊 Voice Responses</span>
+                    <label class="neo-toggle">
+                        <input type="checkbox" id="copilotTtsToggle" checked>
+                        <span class="neo-slider"></span>
+                    </label>
+                </div>
             </div>
-            <span class="stat-pill">
-                <span class="stat-label">FPS</span>
-                <span class="stat-value" id="fpsValue">0</span>
-            </span>
+            
+            <!-- Chat logs -->
+            <div class="copilot-chat-container" id="copilotChatContainer">
+                <div class="chat-messages" id="chatMessages">
+                    <div class="chat-message system">
+                        <span class="message-sender">🤖 Copilot</span>
+                        <p class="message-text">Greetings, Driver. I am DrowsiGuard AI Copilot. Safety protocols initialized. I am here to engage in voice or text dialog to keep you alert. Talk to me if you feel fatigue setting in.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chat input -->
+            <div class="copilot-input-container">
+                <input type="text" id="copilotInput" placeholder="Enter message..." autocomplete="off">
+                <button id="copilotSendBtn" class="neo-btn" style="padding: 8px 16px; margin: 0; min-width: 60px;">SEND</button>
+            </div>
+            
+            <!-- Copilot Settings -->
+            <div class="drawer-section" style="margin-top: 24px;">
+                <h4 style="font-size: 0.8rem; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 6px;">CO-PILOT PARAMETERS</h4>
+                <div class="slider-group">
+                    <div class="slider-label"><span>Base URL</span></div>
+                    <input type="text" id="copilotBaseUrl" value="https://api.groq.com/openai/v1" class="neo-input" style="width:100%; margin-top:4px;">
+                </div>
+                <div class="slider-group" style="margin-top: 10px;">
+                    <div class="slider-label"><span>Model ID</span></div>
+                    <input type="text" id="copilotModel" value="openai/gpt-oss-120b" class="neo-input" style="width:100%; margin-top:4px;">
+                </div>
+                <div class="slider-group" style="margin-top: 10px;">
+                    <div class="slider-label"><span>API Key</span></div>
+                    <input type="password" id="copilotApiKey" placeholder="Enter Groq API Key..." class="neo-input" style="width:100%; margin-top:4px;">
+                </div>
+                <button id="saveCopilotSettings" class="neo-btn" style="width: 100%; margin-top: 14px; text-align: center; display: block;">SAVE PARAMETERS</button>
+            </div>
+        </div>
+    </div>
+    <div id="drawerBackdrop" class="drawer-backdrop hidden"></div></div>
+
+    <!-- ═══ Top HUD Bar ═══ -->
+    <header class="hud-header">
+        <!-- Left: Logo -->
+        <div class="hud-logo">
+            <div class="logo-glyph">
+                <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                    <circle cx="18" cy="18" r="15" stroke="url(#logoGrad)" stroke-width="2" stroke-dasharray="4 2"/>
+                    <circle cx="13" cy="15" r="2.5" fill="#00F5FF"><animate attributeName="r" values="2.5;1.8;2.5" dur="3s" repeatCount="indefinite"/></circle>
+                    <circle cx="23" cy="15" r="2.5" fill="#00F5FF"><animate attributeName="r" values="2.5;1.8;2.5" dur="3s" repeatCount="indefinite"/></circle>
+                    <path d="M12 24 C14 26, 22 26, 24 24" stroke="#39FF14" stroke-width="1.5" stroke-linecap="round"/>
+                    <defs><linearGradient id="logoGrad" x1="0" y1="0" x2="36" y2="36"><stop offset="0%" stop-color="#00F5FF"/><stop offset="100%" stop-color="#8A2BE2"/></linearGradient></defs>
+                </svg>
+            </div>
+            <div class="logo-label">
+                <h1>DROWSI<span class="logo-accent">GUARD</span></h1>
+                <span class="logo-tag">AI-POWERED DRIVER MONITORING</span>
+            </div>
+            <span class="pro-chip">PRO</span>
+        </div>
+
+        <!-- Center: AI Safety Score Ring -->
+        <div class="hud-score" id="hudScore">
+            <svg class="score-ring" viewBox="0 0 140 140">
+                <defs>
+                    <linearGradient id="scoreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#39FF14"/>
+                        <stop offset="50%" stop-color="#00F5FF"/>
+                        <stop offset="100%" stop-color="#8A2BE2"/>
+                    </linearGradient>
+                    <filter id="scoreGlow">
+                        <feGaussianBlur stdDeviation="3" result="blur"/>
+                        <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                    </filter>
+                </defs>
+                <circle cx="70" cy="70" r="60" class="score-bg"/>
+                <circle cx="70" cy="70" r="60" class="score-fill" id="scoreRingFill" filter="url(#scoreGlow)"/>
+                <circle cx="70" cy="70" r="52" class="score-inner-ring"/>
+            </svg>
+            <div class="score-center">
+                <span class="score-num" id="safetyScore">100</span>
+                <span class="score-pct">%</span>
+            </div>
+            <div class="score-label" id="safetyLabel">EXCELLENT</div>
+        </div>
+
+        <!-- Right: Status + Controls -->
+        <div class="hud-status">
+            <div class="status-chip" id="statusChip">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">OFFLINE</span>
+            </div>
+            <div class="fps-chip">
+                <span class="fps-label">FPS</span>
+                <span class="fps-val" id="fpsValue">0</span>
+            </div>
+            <button class="hud-icon-btn" id="settingsBtn" title="Settings">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+            </button>
         </div>
     </header>
 
-    <main class="dashboard">
-        <div class="video-container" id="videoContainer">
-            <video id="mobileVideo" class="video-feed hidden" autoplay playsinline muted></video>
-            <canvas id="mobileCanvas" class="video-feed hidden"></canvas>
-            <div class="video-placeholder" id="videoPlaceholder">
-                <div class="placeholder-icon">📱</div>
-                <h3>Tap Start to Begin</h3>
-                <p>Your camera will open and AI detection will start automatically</p>
-            </div>
-            <div class="live-badge hidden" id="liveBadge"><span class="live-dot"></span> LIVE</div>
-            <div class="mode-badge hidden" id="modeBadge">📱 Phone AI</div>
-        </div>
+    <!-- ═══ Session Stats Bar ═══ -->
+    <div class="session-bar">
+        <div class="session-stat"><span class="stat-icon">🕐</span><span class="stat-data" id="uptimeValue">00:00</span><span class="stat-unit">SESSION</span></div>
+        <div class="session-stat"><span class="stat-icon">👁️</span><span class="stat-data" id="blinkCount">0</span><span class="stat-unit">BLINKS</span></div>
+        <div class="session-stat"><span class="stat-icon">🥱</span><span class="stat-data" id="yawnCount">0</span><span class="stat-unit">YAWNS</span></div>
+        <div class="session-stat"><span class="stat-icon">🧠</span><span class="stat-data" id="aiConfidence">—</span><span class="stat-unit">AI CONF</span></div>
+    </div>
 
-        <div class="control-buttons">
-            <button id="startBtn" class="btn btn-primary">▶ Start Detection</button>
-            <button id="stopBtn" class="btn btn-danger" disabled>■ Stop</button>
-        </div>
+    <!-- ═══ Main HUD Layout ═══ -->
+    <main class="hud-main">
+        <!-- LEFT: Camera Panel -->
+        <section class="camera-panel">
+            <div class="camera-frame" id="videoContainer">
+                <!-- Corner brackets -->
+                <div class="bracket tl"></div>
+                <div class="bracket tr"></div>
+                <div class="bracket bl"></div>
+                <div class="bracket br"></div>
+                <!-- Scan sweep -->
+                <div class="scan-sweep" id="scanSweep"></div>
+                <!-- Video + Canvas -->
+                <video id="mobileVideo" class="cam-feed hidden" autoplay playsinline muted></video>
+                <canvas id="mobileCanvas" class="cam-canvas hidden"></canvas>
+                <!-- Placeholder -->
+                <div class="cam-placeholder" id="videoPlaceholder">
+                    <div class="placeholder-rings">
+                        <div class="ph-ring r1"></div>
+                        <div class="ph-ring r2"></div>
+                        <div class="ph-ring r3"></div>
+                    </div>
+                    <div class="placeholder-core">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="20" stroke="#00F5FF" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
+                            <circle cx="24" cy="24" r="12" stroke="#8A2BE2" stroke-width="1" opacity="0.4"/>
+                            <circle cx="24" cy="24" r="4" fill="#00F5FF" opacity="0.6"/>
+                        </svg>
+                    </div>
+                    <h3>AWAITING INPUT</h3>
+                    <p>Initialize AI detection to begin monitoring</p>
+                </div>
+                <!-- Overlays -->
+                <div class="live-pill hidden" id="liveBadge"><span class="live-dot-neo"></span>LIVE</div>
+                <div class="ai-badge hidden" id="modeBadge">🧠 ON-DEVICE AI</div>
+                <div class="face-status" id="faceBadge">
+                    <span class="face-dot-neo" id="faceDot"></span>
+                    <span id="faceText">NO FACE</span>
+                </div>
+                <div class="cam-hud-controls hidden" id="camControls">
+                    <button class="cam-ctrl-btn" id="flipCamBtn" title="Flip Camera">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6M23 20v-6h-6"/><path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/></svg>
+                    </button>
+                    <button class="cam-ctrl-btn" id="fullscreenBtn" title="Fullscreen">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                    </button>
+                </div>
+                <!-- HUD Coordinates -->
+                <div class="hud-coords" id="hudCoords">
+                    <span>X: 0.000</span><span>Y: 0.000</span>
+                </div>
+            </div>
+        </section>
 
-        <div class="metrics-grid">
-            <div class="metric-card" id="eyeCard">
-                <div class="metric-header"><span class="metric-icon">👁️</span><h3>Eye Status</h3></div>
-                <div class="metric-body">
-                    <div class="status-display">
-                        <span class="status-indicator inactive" id="eyeIndicator"></span>
-                        <span class="status-label" id="eyeStatusText">—</span>
+        <!-- RIGHT: Analytics Panel -->
+        <section class="analytics-panel">
+            <!-- Eye Status Card -->
+            <div class="holo-card" id="eyeCard">
+                <div class="holo-glow"></div>
+                <div class="card-header">
+                    <div class="card-icon eye-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00F5FF" stroke-width="1.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                     </div>
-                    <div class="metric-detail"><span class="detail-label">EAR</span><span class="detail-value mono" id="earValue">0.000</span></div>
-                    <div class="metric-detail"><span class="detail-label">Blinks</span><span class="detail-value" id="blinkCount">0</span></div>
-                </div>
-            </div>
-            <div class="metric-card" id="mouthCard">
-                <div class="metric-header"><span class="metric-icon">👄</span><h3>Mouth Status</h3></div>
-                <div class="metric-body">
-                    <div class="status-display">
-                        <span class="status-indicator inactive" id="mouthIndicator"></span>
-                        <span class="status-label" id="mouthStatusText">—</span>
+                    <h3>EYE STATUS</h3>
+                    <div class="status-badge" id="eyeStatusBadge">
+                        <span class="status-led" id="eyeIndicator"></span>
+                        <span id="eyeStatusText">—</span>
                     </div>
-                    <div class="metric-detail"><span class="detail-label">MAR</span><span class="detail-value mono" id="marValue">0.000</span></div>
-                    <div class="metric-detail"><span class="detail-label">Yawns</span><span class="detail-value" id="yawnCount">0</span></div>
                 </div>
-            </div>
-            <div class="metric-card fatigue-card" id="fatigueCard">
-                <div class="metric-header"><span class="metric-icon">⚡</span><h3>Fatigue Level</h3></div>
-                <div class="metric-body">
-                    <div class="fatigue-gauge">
-                        <div class="fatigue-ring">
-                            <svg viewBox="0 0 120 120"><circle class="ring-bg" cx="60" cy="60" r="52"/><circle class="ring-fill" id="ringFill" cx="60" cy="60" r="52"/></svg>
-                            <div class="fatigue-percent" id="fatiguePercent">0%</div>
+                <div class="card-body">
+                    <div class="gauge-row">
+                        <div class="radial-gauge" id="earGauge">
+                            <svg viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="32" class="gauge-bg"/>
+                                <circle cx="40" cy="40" r="32" class="gauge-fill ear-fill" id="earGaugeFill"/>
+                            </svg>
+                            <div class="gauge-value"><span id="earValue">0.000</span></div>
+                            <div class="gauge-label">EAR</div>
                         </div>
-                        <div class="fatigue-info">
-                            <div class="fatigue-label" id="fatigueLabel">ALERT</div>
-                            <div class="metric-detail"><span class="detail-label">Uptime</span><span class="detail-value mono" id="uptimeValue">00:00</span></div>
-                            <div class="metric-detail"><span class="detail-label">Face</span><span class="face-status" id="faceStatus">—</span></div>
+                        <div class="wave-chart-wrap">
+                            <canvas id="earChart" class="wave-chart"></canvas>
                         </div>
                     </div>
+                    <div class="data-row">
+                        <span class="data-key">BLINK RATE</span>
+                        <span class="data-val" id="blinkRate">0/min</span>
+                    </div>
                 </div>
             </div>
-            <div class="metric-card controls-card">
-                <div class="metric-header"><span class="metric-icon">⚙️</span><h3>Controls</h3></div>
-                <div class="metric-body">
-                    <div class="toggle-row"><span>🔊 Alarm Sound</span><label class="toggle-switch"><input type="checkbox" id="soundToggle" checked><span class="toggle-slider"></span></label></div>
-                    <div class="toggle-row"><span>📳 Vibration</span><label class="toggle-switch"><input type="checkbox" id="vibrateToggle" checked><span class="toggle-slider"></span></label></div>
+
+            <!-- Mouth Status Card -->
+            <div class="holo-card" id="mouthCard">
+                <div class="holo-glow"></div>
+                <div class="card-header">
+                    <div class="card-icon mouth-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8A2BE2" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/></svg>
+                    </div>
+                    <h3>MOUTH STATUS</h3>
+                    <div class="status-badge" id="mouthStatusBadge">
+                        <span class="status-led" id="mouthIndicator"></span>
+                        <span id="mouthStatusText">—</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="gauge-row">
+                        <div class="radial-gauge" id="marGauge">
+                            <svg viewBox="0 0 80 80">
+                                <circle cx="40" cy="40" r="32" class="gauge-bg"/>
+                                <circle cx="40" cy="40" r="32" class="gauge-fill mar-fill" id="marGaugeFill"/>
+                            </svg>
+                            <div class="gauge-value"><span id="marValue">0.000</span></div>
+                            <div class="gauge-label">MAR</div>
+                        </div>
+                        <div class="wave-chart-wrap">
+                            <canvas id="marChart" class="wave-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="data-row">
+                        <span class="data-key">YAWN RATE</span>
+                        <span class="data-val" id="yawnRate">0/min</span>
+                    </div>
                 </div>
             </div>
-        </div>
+
+            <!-- Fatigue Analysis Card -->
+            <div class="holo-card fatigue-card" id="fatigueCard">
+                <div class="holo-glow"></div>
+                <div class="card-header">
+                    <div class="card-icon fatigue-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#39FF14" stroke-width="1.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    </div>
+                    <h3>FATIGUE ANALYSIS</h3>
+                </div>
+                <div class="card-body">
+                    <div class="fatigue-row"><span class="f-label">EYE FATIGUE</span><div class="f-track"><div class="f-fill eye-f" id="eyeFatigueBar"></div></div><span class="f-val" id="eyeFatigueVal">0%</span></div>
+                    <div class="fatigue-row"><span class="f-label">YAWN FATIGUE</span><div class="f-track"><div class="f-fill yawn-f" id="yawnFatigueBar"></div></div><span class="f-val" id="yawnFatigueVal">0%</span></div>
+                    <div class="fatigue-row total"><span class="f-label">OVERALL</span><div class="f-track"><div class="f-fill overall-f" id="overallFatigueBar"></div></div><span class="f-val" id="overallFatigueVal">0%</span></div>
+                </div>
+            </div>
+
+            <!-- Alert History Card -->
+            <div class="holo-card history-card">
+                <div class="holo-glow"></div>
+                <div class="card-header">
+                    <div class="card-icon history-icon">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00F5FF" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                    </div>
+                    <h3>ALERT LOG</h3>
+                </div>
+                <div class="card-body history-body" id="historyBody">
+                    <div class="history-empty">NO ALERTS — ALL SYSTEMS NOMINAL 🛡️</div>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <footer class="footer">
-        <p>🔒 Privacy-Safe — No video recorded. All AI runs locally on your device.</p>
+    <!-- ═══ Bottom Control Bar ═══ -->
+    <footer class="hud-footer">
+        <div class="footer-left">
+            <button id="startBtn" class="neo-btn neo-btn-start">
+                <span class="btn-glow"></span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                <span>INITIALIZE</span>
+            </button>
+            <button id="stopBtn" class="neo-btn neo-btn-stop" disabled>
+                <span class="btn-glow"></span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+                <span>TERMINATE</span>
+            </button>
+        </div>
+
+        <div class="footer-center">
+            <!-- Mode Switch -->
+            <div class="mode-switch" id="modeSwitch">
+                <div class="mode-indicator" id="modeIndicator"></div>
+                <button class="mode-btn active" data-mode="normal">NORMAL</button>
+                <button class="mode-btn" data-mode="night">NIGHT</button>
+                <button class="mode-btn" data-mode="enhanced">AI+</button>
+            </div>
+        </div>
+
+        <div class="footer-right">
+            <!-- Voice Assistant Orb -->
+            <div class="orb-container" id="jarvisOrb">
+                <div class="orb-ring r1"></div>
+                <div class="orb-ring r2"></div>
+                <div class="orb-core"></div>
+            </div>
+            <div class="footer-info">
+                <span class="info-line">🔒 PRIVACY-SAFE</span>
+                <span class="info-line dim">ALL AI RUNS ON-DEVICE</span>
+            </div>
+        </div>
     </footer>
 
-<script type="module">
-import {FaceLandmarker, FilesetResolver} from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs';
-
-// Landmark indices
-const R_EYE=[33,160,158,133,153,144],L_EYE=[362,385,387,263,373,380];
-const R_EYE_F=[33,7,163,144,145,153,154,155,133,173,157,158,159,160,161,246];
-const L_EYE_F=[362,382,381,380,374,373,390,249,263,466,388,387,386,385,384,398];
-const LIPS=[61,146,91,181,84,17,314,405,321,375,291,308,324,318,402,317,14,87,178,88,95,185,40,39,37,0,267,269,270,409,415,310,311,312,13,82,81,42,183,78];
-const MT=13,MB=14,ML=78,MR=308,MTI=[81,311],MBI=[178,402];
-const EAR_TH=0.22,MAR_TH=0.65,EAR_FR=15,MAR_FR=10;
-
-const $=id=>document.getElementById(id);
-const dom={video:$('mobileVideo'),canvas:$('mobileCanvas'),placeholder:$('videoPlaceholder'),container:$('videoContainer'),liveBadge:$('liveBadge'),modeBadge:$('modeBadge'),startBtn:$('startBtn'),stopBtn:$('stopBtn'),statusDot:$('statusDot'),statusText:$('statusText'),fpsValue:$('fpsValue'),uptimeValue:$('uptimeValue'),eyeCard:$('eyeCard'),eyeInd:$('eyeIndicator'),eyeText:$('eyeStatusText'),earVal:$('earValue'),blinkCnt:$('blinkCount'),mouthCard:$('mouthCard'),mouthInd:$('mouthIndicator'),mouthText:$('mouthStatusText'),marVal:$('marValue'),yawnCnt:$('yawnCount'),fatigueCard:$('fatigueCard'),ringFill:$('ringFill'),fatPct:$('fatiguePercent'),fatLabel:$('fatigueLabel'),faceStatus:$('faceStatus'),soundToggle:$('soundToggle'),vibrateToggle:$('vibrateToggle'),alertOverlay:$('alertOverlay')};
-
-let landmarker=null,stream=null,animFrame=null,running=false;
-let closedFr=0,yawnFr=0,blinks=0,yawns=0,startT=0,fpsCnt=0,lastFpsT=0,fps=0;
-let audioCtx=null,osc=null,alarmOn=false;
-
-function dist(a,b){return Math.sqrt((a.x-b.x)**2+(a.y-b.y)**2)}
-function ear(lm,idx){const p=idx.map(i=>lm[i]);const v1=dist(p[1],p[5]),v2=dist(p[2],p[4]),h=dist(p[0],p[3]);return h?((v1+v2)/(2*h)):0}
-function mar(lm){const t=lm[MT],b=lm[MB],l=lm[ML],r=lm[MR];const v1=dist(t,b),v2=dist(lm[MTI[0]],lm[MBI[0]]),v3=dist(lm[MTI[1]],lm[MBI[1]]),h=dist(l,r);return h?((v1+v2+v3)/(3*h)):0}
-
-function drawContour(ctx,lm,idx,color,w,h){
-    if(idx.length<2)return;ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=2;
-    ctx.moveTo(lm[idx[0]].x*w,lm[idx[0]].y*h);
-    for(let i=1;i<idx.length;i++)ctx.lineTo(lm[idx[i]].x*w,lm[idx[i]].y*h);
-    ctx.closePath();ctx.stroke();
-}
-
-function playAlarm(){
-    if(alarmOn||!dom.soundToggle.checked)return;
-    try{
-        if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
-        if(audioCtx.state==='suspended')audioCtx.resume();
-        osc=audioCtx.createOscillator();const g=audioCtx.createGain();
-        osc.type='square';osc.frequency.value=880;g.gain.value=0.25;
-        osc.connect(g);g.connect(audioCtx.destination);osc.start();alarmOn=true;
-        let hi=true;window._ai=setInterval(()=>{if(osc)osc.frequency.value=hi?660:880;hi=!hi},150);
-    }catch(e){}
-    if(dom.vibrateToggle.checked&&navigator.vibrate)navigator.vibrate([300,100,300,100,300,100,300]);
-}
-function stopAlarm(){
-    if(window._ai){clearInterval(window._ai);window._ai=null}
-    if(osc){try{osc.stop()}catch(e){}osc=null}alarmOn=false;
-    if(navigator.vibrate)navigator.vibrate(0);
-}
-
-function formatTime(s){const m=Math.floor(s/60),ss=s%60;return`${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`}
-
-function updateUI(d){
-    if(d.running){
-        if(d.alert){dom.statusDot.className='status-dot alert';dom.statusText.textContent='ALERT!';dom.statusText.style.color='var(--accent-red)'}
-        else{dom.statusDot.className='status-dot online';dom.statusText.textContent='Monitoring';dom.statusText.style.color='var(--accent-green)'}
-    }
-    dom.fpsValue.textContent=d.fps||0;
-    dom.uptimeValue.textContent=formatTime(d.uptime||0);
-    dom.earVal.textContent=d.ear.toFixed(3);dom.blinkCnt.textContent=d.blinks;
-    dom.marVal.textContent=d.mar.toFixed(3);dom.yawnCnt.textContent=d.yawns;
-
-    if(d.eye==='OPEN'){dom.eyeInd.className='status-indicator open';dom.eyeText.textContent='OPEN';dom.eyeText.style.color='var(--accent-green)';dom.eyeCard.classList.remove('alert')}
-    else if(d.eye==='CLOSED'){dom.eyeInd.className='status-indicator closed';dom.eyeText.textContent='CLOSED';dom.eyeText.style.color='var(--accent-red)';if(d.drowsy)dom.eyeCard.classList.add('alert')}
-    else{dom.eyeInd.className='status-indicator inactive';dom.eyeText.textContent='—';dom.eyeText.style.color='var(--text-muted)';dom.eyeCard.classList.remove('alert')}
-
-    if(d.mouth==='YAWNING'){dom.mouthInd.className='status-indicator yawn';dom.mouthText.textContent='YAWNING';dom.mouthText.style.color='var(--accent-orange)';if(d.yawnAlert)dom.mouthCard.classList.add('warning')}
-    else if(d.mouth==='NORMAL'){dom.mouthInd.className='status-indicator open';dom.mouthText.textContent='NORMAL';dom.mouthText.style.color='var(--accent-green)';dom.mouthCard.classList.remove('warning')}
-    else{dom.mouthInd.className='status-indicator inactive';dom.mouthText.textContent='—';dom.mouthCard.classList.remove('warning')}
-
-    const f=d.fatigue||0;const circ=2*Math.PI*52;
-    dom.ringFill.style.strokeDashoffset=circ*(1-f/100);dom.fatPct.textContent=f+'%';
-    let fc,ft;if(f<30){fc='var(--accent-green)';ft='ALERT'}else if(f<60){fc='var(--accent-yellow)';ft='MODERATE'}else if(f<80){fc='var(--accent-orange)';ft='DROWSY'}else{fc='var(--accent-red)';ft='DANGER!'}
-    dom.ringFill.style.stroke=fc;dom.fatPct.style.color=fc;dom.fatLabel.style.color=fc;dom.fatLabel.textContent=ft;
-    dom.fatigueCard.classList.toggle('alert',f>=60);
-
-    dom.faceStatus.textContent=d.face?'Yes ✓':'No ✗';dom.faceStatus.className='face-status '+(d.face?'detected':'not-detected');
-    if(d.drowsy){dom.alertOverlay.classList.remove('hidden');dom.container.classList.add('alert-active')}
-    else{dom.alertOverlay.classList.add('hidden');dom.container.classList.remove('alert-active')}
-}
-
-function detectLoop(){
-    if(!running||!landmarker)return;
-    const v=dom.video,c=dom.canvas,ctx=c.getContext('2d');
-    if(v.readyState<2){animFrame=requestAnimationFrame(detectLoop);return}
-    c.width=v.videoWidth;c.height=v.videoHeight;
-    const now=performance.now();
-    let res;try{res=landmarker.detectForVideo(v,now)}catch(e){animFrame=requestAnimationFrame(detectLoop);return}
-    ctx.clearRect(0,0,c.width,c.height);ctx.save();ctx.translate(c.width,0);ctx.scale(-1,1);
-
-    let e=0,m=0,eyeS='N/A',mouthS='N/A',face=false,drowsy=false,yawnA=false;
-    if(res.faceLandmarks&&res.faceLandmarks.length>0){
-        face=true;const lm=res.faceLandmarks[0];
-        e=(ear(lm,L_EYE)+ear(lm,R_EYE))/2;m=mar(lm);
-        if(e<EAR_TH){closedFr++;eyeS='CLOSED'}else{if(closedFr>2)blinks++;closedFr=0;eyeS='OPEN'}
-        if(m>MAR_TH){yawnFr++;mouthS='YAWNING'}else{if(yawnFr>MAR_FR)yawns++;yawnFr=0;mouthS='NORMAL'}
-        drowsy=closedFr>=EAR_FR;yawnA=yawnFr>=MAR_FR;
-        const ef=Math.min(100,(closedFr/EAR_FR)*60),yf=Math.min(40,yawns*10),fat=Math.min(100,Math.floor(ef+yf));
-        if(drowsy||yawnA)playAlarm();else stopAlarm();
-
-        const ec=eyeS==='OPEN'?'#00ff88':'#ff3366',mc=mouthS==='NORMAL'?'#00ff88':'#ff9f43';
-        drawContour(ctx,lm,R_EYE_F,ec,c.width,c.height);drawContour(ctx,lm,L_EYE_F,ec,c.width,c.height);
-        drawContour(ctx,lm,LIPS,mc,c.width,c.height);
-        for(const ei of[R_EYE,L_EYE]){const cx=ei.reduce((s,i)=>s+lm[i].x,0)/ei.length*c.width,cy=ei.reduce((s,i)=>s+lm[i].y,0)/ei.length*c.height;ctx.beginPath();ctx.arc(cx,cy,3,0,2*Math.PI);ctx.fillStyle=ec;ctx.fill()}
-
-        fpsCnt++;if(now-lastFpsT>1000){fps=Math.round(fpsCnt*1000/(now-lastFpsT));fpsCnt=0;lastFpsT=now}
-        const up=startT?Math.floor((Date.now()-startT)/1000):0;
-        updateUI({running:true,face:true,ear:e,mar:m,eye:eyeS,mouth:mouthS,fatigue:fat,alert:drowsy||yawnA,drowsy,yawnAlert:yawnA,blinks,yawns,fps,uptime:up});
-    }else{
-        closedFr=0;yawnFr=0;stopAlarm();
-        fpsCnt++;if(now-lastFpsT>1000){fps=Math.round(fpsCnt*1000/(now-lastFpsT));fpsCnt=0;lastFpsT=now}
-        const up=startT?Math.floor((Date.now()-startT)/1000):0;
-        updateUI({running:true,face:false,ear:0,mar:0,eye:'N/A',mouth:'N/A',fatigue:0,alert:false,drowsy:false,yawnAlert:false,blinks,yawns,fps,uptime:up});
-    }
-    ctx.restore();animFrame=requestAnimationFrame(detectLoop);
-}
-
-dom.startBtn.addEventListener('click',async()=>{
-    dom.startBtn.disabled=true;dom.startBtn.textContent='⏳ Loading AI...';
-    try{
-        const fr=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');
-        landmarker=await FaceLandmarker.createFromOptions(fr,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'GPU'},runningMode:'VIDEO',numFaces:1,minFaceDetectionConfidence:0.5,minFacePresenceConfidence:0.5,minTrackingConfidence:0.5});
-    }catch(e){
-        try{
-            const fr=await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm');
-            landmarker=await FaceLandmarker.createFromOptions(fr,{baseOptions:{modelAssetPath:'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',delegate:'CPU'},runningMode:'VIDEO',numFaces:1});
-        }catch(e2){alert('Failed to load AI model. Check your internet.');dom.startBtn.disabled=false;dom.startBtn.textContent='▶ Start Detection';return}
-    }
-    dom.startBtn.textContent='📷 Opening camera...';
-    try{
-        stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:640},height:{ideal:480}},audio:false});
-        dom.video.srcObject=stream;await dom.video.play();
-    }catch(e){alert('Camera access denied. Please allow camera permission.');dom.startBtn.disabled=false;dom.startBtn.textContent='▶ Start Detection';return}
-
-    running=true;closedFr=0;yawnFr=0;blinks=0;yawns=0;startT=Date.now();lastFpsT=performance.now();fpsCnt=0;
-    dom.video.classList.remove('hidden');dom.canvas.classList.remove('hidden');dom.placeholder.classList.add('hidden');
-    dom.liveBadge.classList.remove('hidden');dom.modeBadge.classList.remove('hidden');
-    dom.startBtn.textContent='▶ Start Detection';dom.stopBtn.disabled=false;
-    detectLoop();
-});
-
-dom.stopBtn.addEventListener('click',()=>{
-    running=false;if(animFrame){cancelAnimationFrame(animFrame);animFrame=null}
-    if(stream){stream.getTracks().forEach(t=>t.stop());stream=null}
-    dom.video.srcObject=null;stopAlarm();
-    dom.video.classList.add('hidden');dom.canvas.classList.add('hidden');dom.placeholder.classList.remove('hidden');
-    dom.liveBadge.classList.add('hidden');dom.alertOverlay.classList.add('hidden');dom.container.classList.remove('alert-active');
-    dom.startBtn.disabled=false;dom.stopBtn.disabled=true;
-    dom.statusDot.className='status-dot offline';dom.statusText.textContent='Offline';dom.statusText.style.color='var(--text-muted)';
-    dom.eyeInd.className='status-indicator inactive';dom.eyeText.textContent='—';
-    dom.mouthInd.className='status-indicator inactive';dom.mouthText.textContent='—';
-});
-</script>
+    <script src="app.js?v=20260409" type="module"></script>
 </body>
 </html>

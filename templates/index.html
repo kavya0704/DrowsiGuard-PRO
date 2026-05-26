@@ -1,16 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AI-powered Driver Drowsiness Detection System — Real-time monitoring for safer driving.">
-    <title>AI Driver Drowsiness Detection System</title>
+    <meta name="description" content="DrowsiGuard Pro — AI-powered Driver Drowsiness Detection System with real-time monitoring, analytics, and safety alerts.">
+    <title>DrowsiGuard Pro — AI Drowsiness Detection</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
+    <!-- Floating Background Orbs -->
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb"></div>
+        <div class="orb"></div>
+        <div class="orb"></div>
+    </div>
+
     <!-- Alert Overlay (full screen flash) -->
     <div id="alertOverlay" class="alert-overlay hidden">
         <div class="alert-content">
@@ -39,7 +46,7 @@
                     </svg>
                 </div>
                 <div class="logo-text">
-                    <h1>DrowsiGuard</h1>
+                    <h1>DrowsiGuard <span class="pro-badge">✦ PRO</span></h1>
                     <span class="logo-subtitle">AI Drowsiness Detection</span>
                 </div>
             </div>
@@ -59,12 +66,13 @@
                     <span class="stat-value" id="uptimeValue">00:00</span>
                 </span>
             </div>
+            <button class="theme-toggle-btn" id="themeToggle" title="Toggle Light/Dark Mode" aria-label="Toggle theme">🌙</button>
         </div>
     </header>
 
     <!-- Main Content -->
     <main class="dashboard">
-        <!-- Left Panel: Video Feed -->
+        <!-- Left Panel: Video Feed + Chart -->
         <section class="video-section">
             <div class="video-container" id="videoContainer">
                 <!-- Desktop: server-streamed MJPEG -->
@@ -87,12 +95,25 @@
                 </div>
             </div>
 
+            <!-- Real-Time EAR/MAR Chart -->
+            <div class="chart-container" id="chartContainer">
+                <div class="chart-header">
+                    <h3><span>📊</span> Real-Time Analytics</h3>
+                    <div class="chart-legend">
+                        <span class="chart-legend-item"><span class="legend-dot ear"></span>EAR</span>
+                        <span class="chart-legend-item"><span class="legend-dot mar"></span>MAR</span>
+                        <span class="chart-legend-item"><span class="legend-dot threshold"></span>Threshold</span>
+                    </div>
+                </div>
+                <canvas id="realtimeChart"></canvas>
+            </div>
+
             <!-- Camera Controls -->
             <div class="camera-controls">
                 <div class="input-group" id="cameraUrlGroup">
                     <label for="cameraUrl">Camera Source</label>
                     <div class="input-wrapper">
-                        <input type="text" id="cameraUrl" 
+                        <input type="text" id="cameraUrl"
                                placeholder="e.g. http://192.168.1.100:8080/video  (leave empty for webcam)"
                                spellcheck="false">
                         <button class="btn-icon" id="pasteBtn" title="Paste from clipboard">📋</button>
@@ -183,6 +204,63 @@
                 </div>
             </div>
 
+            <!-- AI Copilot Card -->
+            <div class="metric-card copilot-card" id="copilotCard">
+                <div class="metric-header">
+                    <span class="metric-icon">🤖</span>
+                    <h3>AI Copilot</h3>
+                    <div class="copilot-tts-toggle">
+                        <label class="toggle-switch" title="Toggle Voice Responses (Text-to-Speech)">
+                            <input type="checkbox" id="copilotTtsToggle" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                        <span class="tts-label">🔊 Voice</span>
+                    </div>
+                </div>
+                <div class="metric-body copilot-body">
+                    <div class="copilot-chat-container" id="copilotChatContainer">
+                        <div class="chat-messages" id="chatMessages">
+                            <div class="chat-message system">
+                                <span class="message-sender">🤖 Copilot</span>
+                                <p class="message-text">Hello! I am your DrowsiGuard AI Copilot. I'm here to keep you engaged, awake, and safe. Let's chat to stay alert!</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="copilot-input-container">
+                        <input type="text" id="copilotInput" placeholder="Type a message to chat..." autocomplete="off">
+                        <button id="copilotSendBtn" class="btn btn-primary btn-sm">Send</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Summary Card -->
+            <div class="metric-card session-card" id="sessionCard">
+                <div class="metric-header">
+                    <span class="metric-icon">📋</span>
+                    <h3>Session Summary</h3>
+                </div>
+                <div class="metric-body">
+                    <div class="session-stats-grid">
+                        <div class="session-stat">
+                            <span class="session-stat-label">Duration</span>
+                            <span class="session-stat-value" id="sessionDuration">00:00</span>
+                        </div>
+                        <div class="session-stat">
+                            <span class="session-stat-label">Total Alerts</span>
+                            <span class="session-stat-value red" id="sessionAlerts">0</span>
+                        </div>
+                        <div class="session-stat">
+                            <span class="session-stat-label">Blink Rate</span>
+                            <span class="session-stat-value green" id="sessionBlinkRate">0 /min</span>
+                        </div>
+                        <div class="session-stat">
+                            <span class="session-stat-label">Avg Fatigue</span>
+                            <span class="session-stat-value orange" id="sessionAvgFatigue">0%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Quick Controls -->
             <div class="metric-card controls-card">
                 <div class="metric-header">
@@ -207,6 +285,19 @@
                     <div class="toggle-row">
                         <span>🎯 Face Detected</span>
                         <span class="face-status" id="faceStatus">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert History -->
+            <div class="metric-card alert-history-card" id="alertHistoryCard">
+                <div class="metric-header">
+                    <span class="metric-icon">🔔</span>
+                    <h3>Alert History</h3>
+                </div>
+                <div class="metric-body">
+                    <div class="alert-history-list" id="alertHistoryList">
+                        <div class="alert-history-empty" id="alertHistoryEmpty">No alerts yet</div>
                     </div>
                 </div>
             </div>
@@ -238,12 +329,43 @@
                     <button id="applyThresholds" class="btn btn-secondary btn-sm">Apply Changes</button>
                 </div>
             </details>
+
+            <!-- Copilot Settings Card (collapsible) -->
+            <details class="metric-card settings-card" id="copilotSettingsCard">
+                <summary class="metric-header clickable">
+                    <span class="metric-icon">🔧</span>
+                    <h3>AI Copilot Settings</h3>
+                    <span class="expand-icon">▾</span>
+                </summary>
+                <div class="metric-body">
+                    <div class="settings-input-group">
+                        <label for="copilotApiKey">Groq API Key</label>
+                        <input type="password" id="copilotApiKey" placeholder="Enter Groq API Key..." class="settings-input">
+                    </div>
+                    <div class="settings-input-group" style="margin-top: 10px;">
+                        <label for="copilotModel">Model</label>
+                        <input type="text" id="copilotModel" value="openai/gpt-oss-120b" placeholder="openai/gpt-oss-120b" class="settings-input">
+                    </div>
+                    <div class="settings-input-group" style="margin-top: 10px;">
+                        <label for="copilotBaseUrl">Base URL</label>
+                        <input type="text" id="copilotBaseUrl" value="https://api.groq.com/openai/v1" placeholder="https://api.groq.com/openai/v1" class="settings-input">
+                    </div>
+                    <button id="saveCopilotSettings" class="btn btn-secondary btn-sm" style="margin-top: 12px; width: 100%;">Save Settings</button>
+                </div>
+            </details>
         </aside>
     </main>
 
     <!-- Footer -->
     <footer class="footer">
         <p>🔒 Privacy-Safe — No video is recorded or stored. All processing happens locally in real-time.</p>
+        <div class="footer-shortcuts">
+            <span class="shortcut-hint"><span class="shortcut-key">S</span> Start</span>
+            <span class="shortcut-hint"><span class="shortcut-key">X</span> Stop</span>
+            <span class="shortcut-hint"><span class="shortcut-key">M</span> Mute</span>
+            <span class="shortcut-hint"><span class="shortcut-key">P</span> Privacy</span>
+            <span class="shortcut-hint"><span class="shortcut-key">T</span> Theme</span>
+        </div>
     </footer>
 
     <!-- MediaPipe Vision Tasks JS for mobile client-side detection -->
